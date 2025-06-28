@@ -55,7 +55,7 @@
   <div id="question">Click Start to begin!</div>
   <div id="feedback"></div>
   <div class="row">
-    <input id="answer" type="number" onkeydown="if(event.key==='Enter'){submitAnswer()}" disabled>
+    <input id="answer" type="tel" pattern="[0-9]*" inputmode="numeric" onkeydown="if(event.key==='Enter'){submitAnswer()}" disabled>
     <button onclick="submitAnswer()" id="submitBtn" disabled>Submit</button>
   </div>
   <progress id="progressBar" value="0" max="10"></progress>
