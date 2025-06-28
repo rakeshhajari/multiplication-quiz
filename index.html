@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Multiplication Quiz</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -9,49 +10,69 @@
       font-family: 'Segoe UI', sans-serif;
       background: #f9f9f9;
       color: #333;
-      padding: 30px;
-      max-width: 800px;
+      padding: 20px;
+      max-width: 900px;
       margin: auto;
     }
     h1 {
       text-align: center;
       color: #2c3e50;
+      font-size: 2rem;
+      margin-bottom: 20px;
     }
     .row {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 15px;
     }
-    .row label {
-      font-weight: bold;
+    label {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .row input, .row select {
+    input, select {
       font-size: 1em;
-      padding: 6px;
-      width: 90px;
+      padding: 6px 10px;
+      min-height: 42px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
     button {
       padding: 10px 16px;
-      font-size: 1em;
+      font-size: 1.1em;
       cursor: pointer;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
     }
     #question {
-      font-size: 1.8em;
+      font-size: 1.6rem;
       text-align: center;
-      margin: 20px 0 10px;
+      margin-top: 20px;
+      margin-bottom: 10px;
     }
     #timer {
       text-align: center;
       color: #0077cc;
-      margin-bottom: 10px;
+      font-size: 1.1em;
+      margin-bottom: 15px;
     }
     #answer {
       font-size: 1.5em;
-      padding: 10px;
-      width: 100px;
       text-align: center;
+      width: 120px;
     }
     #feedback {
       font-size: 1.2em;
@@ -61,7 +82,7 @@
     }
     progress {
       width: 100%;
-      height: 18px;
+      height: 16px;
     }
     #results {
       margin-top: 30px;
@@ -77,242 +98,295 @@
     .result-row.wrong { color: red; }
     .toggle-options {
       text-align: center;
-      margin-top: 10px;
+      margin-bottom: 15px;
     }
     .toggle-options label {
       margin: 0 10px;
     }
+    canvas {
+      max-width: 100%;
+    }
+
+    /* Mobile Adjustments */
     @media (max-width: 600px) {
       .row {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+      }
+      input, select, button {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      #answer {
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
 
-  <h1>Multiplication Quiz</h1>
+<h1>Multiplication Quiz</h1>
 
-  <div class="row">
-    <label>From: <input id="minTable" type="number" value="2" min="1"></label>
-    <label>To: <input id="maxTable" type="number" value="20" min="1"></label>
-    <label>Questions: <input id="numQuestions" type="number" value="10" min="1"></label>
-    <label>Difficulty:
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium" selected>Medium</option>
-        <option value="hard">Hard</option>
-      </select>
-    </label>
-  </div>
+<div class="row">
+  <label>From: <input id="minTable" type="number" value="2" min="1"></label>
+  <label>To: <input id="maxTable" type="number" value="20" min="1"></label>
+  <label>Questions: <input id="numQuestions" type="number" value="10" min="1"></label>
+  <label>Difficulty:
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium" selected>Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </label>
+</div>
 
-  <div class="toggle-options">
-    <label><input type="checkbox" id="enableTimer" checked> Enable Timer</label>
-    <label><input type="checkbox" id="enableSound"> Sound</label>
-  </div>
+<div class="toggle-options">
+  <label><input type="checkbox" id="enableTimer" checked> Enable Timer</label>
+  <label><input type="checkbox" id="enableSound"> Sound</label>
+</div>
 
-  <div class="row">
-    <button onclick="startQuiz()">Start Quiz</button>
-    <button onclick="restartQuiz()">Restart</button>
-  </div>
+<div class="row">
+  <button onclick="startQuiz()">Start Quiz</button>
+  <button onclick="restartQuiz()">Restart</button>
+  <button onclick="togglePause()" id="pauseBtn" disabled>Pause</button>
+</div>
 
-  <div id="question">Click Start to begin!</div>
-  <div id="timer"></div>
+<div id="question">Click Start to begin!</div>
+<div id="timer"></div>
 
-  <div class="row">
-    <input id="answer" type="number" onkeydown="if(event.key==='Enter'){submitAnswer()}">
-    <button onclick="submitAnswer()">Submit</button>
-  </div>
+<div class="row">
+  <input id="answer" type="number" onkeydown="if(event.key==='Enter'){submitAnswer()}" disabled>
+  <button onclick="submitAnswer()" id="submitBtn" disabled>Submit</button>
+</div>
 
-  <div id="feedback"></div>
-  <progress id="progressBar" value="0" max="10"></progress>
+<div id="feedback"></div>
+<progress id="progressBar" value="0" max="10"></progress>
 
-  <div id="results">
-    <h3>Results:</h3>
-    <div id="resultList"></div>
-  </div>
+<div id="results">
+  <h3>Results:</h3>
+  <div id="resultList"></div>
+</div>
 
-  <audio id="sound-correct" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
-  <audio id="sound-wrong" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg"></audio>
+<audio id="sound-correct" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="sound-wrong" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg"></audio>
 
-  <script>
-    let minTable, maxTable, numQuestions, difficulty;
-    let current = 0, score = 0, a, b, correctAnswer;
-    let timer, timeLeft = 5;
-    let results = [];
-    let questionPool = [];
+<script>
+  let minTable, maxTable, numQuestions, difficulty;
+  let current = 0, score = 0, a, b, correctAnswer;
+  let timer, timeLeft = 5;
+  let results = [];
+  let questionPool = [];
+  let questionLocked = false;
+  let isPaused = false;
 
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function generateQuestionPool(minA, maxA, diff) {
+    const bRange = {
+      easy: [1, 5],
+      medium: [2, 10],
+      hard: [5, 12]
+    }[diff];
+
+    let pool = [];
+    for (let i = minA; i <= maxA; i++) {
+      for (let j = bRange[0]; j <= bRange[1]; j++) {
+        pool.push([i, j]);
       }
-      return array;
     }
+    return shuffleArray(pool);
+  }
 
-    function generateQuestionPool(minA, maxA, diff) {
-      const bRange = {
-        easy: [1, 5],
-        medium: [2, 10],
-        hard: [5, 12]
-      }[diff];
+  function startQuiz() {
+    minTable = parseInt(document.getElementById('minTable').value);
+    maxTable = parseInt(document.getElementById('maxTable').value);
+    numQuestions = parseInt(document.getElementById('numQuestions').value);
+    difficulty = document.getElementById('difficulty').value;
+    current = 0;
+    score = 0;
+    results = [];
+    questionPool = generateQuestionPool(minTable, maxTable, difficulty).slice(0, numQuestions);
 
-      let pool = [];
-      for (let i = minA; i <= maxA; i++) {
-        for (let j = bRange[0]; j <= bRange[1]; j++) {
-          pool.push([i, j]);
-        }
-      }
-      return shuffleArray(pool);
-    }
+    document.getElementById('progressBar').max = numQuestions;
+    document.getElementById('progressBar').value = 0;
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('resultList').innerHTML = '';
+    document.getElementById("pauseBtn").disabled = false;
+    document.getElementById("submitBtn").disabled = false;
+    document.getElementById("answer").disabled = false;
+    const oldChart = document.getElementById("scoreChart");
+    if (oldChart) oldChart.remove();
+    nextQuestion();
+  }
 
-    function startQuiz() {
-      minTable = parseInt(document.getElementById('minTable').value);
-      maxTable = parseInt(document.getElementById('maxTable').value);
-      numQuestions = parseInt(document.getElementById('numQuestions').value);
-      difficulty = document.getElementById('difficulty').value;
-      current = 0;
-      score = 0;
-      results = [];
-      questionPool = generateQuestionPool(minTable, maxTable, difficulty).slice(0, numQuestions);
+  function restartQuiz() {
+    clearTimeout(timer);
+    questionLocked = false;
+    isPaused = false;
+    document.getElementById('question').textContent = 'Click Start to begin!';
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('timer').textContent = '';
+    document.getElementById('answer').value = '';
+    document.getElementById('progressBar').value = 0;
+    document.getElementById('resultList').innerHTML = '';
+    document.getElementById("pauseBtn").disabled = true;
+    document.getElementById("submitBtn").disabled = true;
+    document.getElementById("answer").disabled = true;
+    const oldChart = document.getElementById("scoreChart");
+    if (oldChart) oldChart.remove();
+  }
 
-      document.getElementById('progressBar').max = numQuestions;
-      document.getElementById('progressBar').value = 0;
-      document.getElementById('feedback').textContent = '';
-      document.getElementById('resultList').innerHTML = '';
-      const oldChart = document.getElementById("scoreChart");
-      if (oldChart) oldChart.remove();
-      nextQuestion();
-    }
-
-    function restartQuiz() {
-      clearTimeout(timer);
-      document.getElementById('question').textContent = 'Click Start to begin!';
-      document.getElementById('feedback').textContent = '';
+  function nextQuestion() {
+    if (current === questionPool.length) {
+      document.getElementById('question').textContent = `Quiz over! Score: ${score}/${numQuestions}`;
       document.getElementById('timer').textContent = '';
-      document.getElementById('answer').value = '';
-      document.getElementById('progressBar').value = 0;
-      document.getElementById('resultList').innerHTML = '';
-      const oldChart = document.getElementById("scoreChart");
-      if (oldChart) oldChart.remove();
+      document.getElementById("pauseBtn").disabled = true;
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("answer").disabled = true;
+      showScoreChart();
+      return;
     }
 
-    function nextQuestion() {
-      if (current === questionPool.length) {
-        document.getElementById('question').textContent = `Quiz over! Score: ${score}/${numQuestions}`;
-        document.getElementById('timer').textContent = '';
-        showScoreChart();
-        return;
-      }
+    questionLocked = false;
+    isPaused = false;
+    [a, b] = questionPool[current];
+    correctAnswer = a * b;
+    current++;
+    timeLeft = 5;
 
-      [a, b] = questionPool[current];
-      correctAnswer = a * b;
-      current++;
-      timeLeft = 5;
+    document.getElementById('question').textContent = `Q${current}: ${a} × ${b} = ?`;
+    document.getElementById('answer').value = '';
+    document.getElementById('answer').focus();
 
-      document.getElementById('question').textContent = `Q${current}: ${a} × ${b} = ?`;
-      document.getElementById('answer').value = '';
-      document.getElementById('answer').focus();
-
-      if (document.getElementById('enableTimer').checked) {
-        updateTimer();
-      } else {
-        document.getElementById('timer').textContent = '';
-      }
+    clearTimeout(timer);
+    if (document.getElementById('enableTimer').checked) {
+      updateTimer();
+    } else {
+      document.getElementById('timer').textContent = '';
     }
+  }
 
-    function updateTimer() {
-      document.getElementById('timer').textContent = `Time left: ${timeLeft}s`;
-      if (timeLeft === 0) {
+  function updateTimer() {
+    if (isPaused) return;
+    document.getElementById('timer').textContent = `Time left: ${timeLeft}s`;
+    if (timeLeft === 0) {
+      if (!questionLocked) {
+        questionLocked = true;
         playSound('wrong');
         showFeedback(`Time's up! Correct: ${correctAnswer}`, 'orange');
         recordResult('', false);
         document.getElementById('progressBar').value = current;
         setTimeout(nextQuestion, 1500);
-      } else {
-        timeLeft--;
-        timer = setTimeout(updateTimer, 1000);
       }
+    } else {
+      timeLeft--;
+      timer = setTimeout(updateTimer, 1000);
+    }
+  }
+
+  function submitAnswer() {
+    if (questionLocked || isPaused) return;
+    questionLocked = true;
+    clearTimeout(timer);
+
+    const userInput = parseInt(document.getElementById('answer').value);
+    const correct = userInput === correctAnswer;
+
+    if (correct) {
+      score++;
+      showFeedback("Correct!", "green");
+      playSound('correct');
+    } else {
+      showFeedback(`Wrong! Correct: ${correctAnswer}`, "red");
+      playSound('wrong');
     }
 
-    function submitAnswer() {
+    recordResult(userInput, correct);
+    document.getElementById('progressBar').value = current;
+    setTimeout(nextQuestion, 1500);
+  }
+
+  function togglePause() {
+    isPaused = !isPaused;
+    const btn = document.getElementById("pauseBtn");
+    if (isPaused) {
       clearTimeout(timer);
-      const userInput = parseInt(document.getElementById('answer').value);
-      const correct = userInput === correctAnswer;
-
-      if (correct) {
-        score++;
-        showFeedback("Correct!", "green");
-        playSound('correct');
-      } else {
-        showFeedback(`Wrong! Correct: ${correctAnswer}`, "red");
-        playSound('wrong');
-      }
-
-      recordResult(userInput, correct);
-      document.getElementById('progressBar').value = current;
-      setTimeout(nextQuestion, 1500);
+      btn.textContent = "Resume";
+      document.getElementById("submitBtn").disabled = true;
+      document.getElementById("answer").disabled = true;
+      document.getElementById('timer').textContent = "Paused";
+    } else {
+      btn.textContent = "Pause";
+      document.getElementById("submitBtn").disabled = false;
+      document.getElementById("answer").disabled = false;
+      updateTimer();
     }
+  }
 
-    function recordResult(userAnswer, isCorrect) {
-      results.push(isCorrect);
-      const resultLine = document.createElement('div');
-      resultLine.className = `result-row ${isCorrect ? 'correct' : 'wrong'}`;
-      resultLine.textContent = `Q${current}: ${a} × ${b} = ${correctAnswer} | Your Answer: ${userAnswer || '—'} ${isCorrect ? '✅' : '❌'}`;
-      document.getElementById('resultList').appendChild(resultLine);
-    }
+  function recordResult(userAnswer, isCorrect) {
+    results.push(isCorrect);
+    const resultLine = document.createElement('div');
+    resultLine.className = `result-row ${isCorrect ? 'correct' : 'wrong'}`;
+    resultLine.textContent = `Q${current}: ${a} × ${b} = ${correctAnswer} | Your Answer: ${userAnswer || '—'} ${isCorrect ? '✅' : '❌'}`;
+    document.getElementById('resultList').appendChild(resultLine);
+  }
 
-    function showFeedback(message, color) {
-      let fb = document.getElementById('feedback');
-      fb.textContent = message;
-      fb.style.color = color;
-      let flashes = 0;
-      const flash = () => {
-        fb.style.visibility = (flashes % 2 === 0) ? "hidden" : "visible";
-        flashes++;
-        if (flashes < 6) setTimeout(flash, 100);
-        else fb.style.visibility = "visible";
-      };
-      flash();
-    }
+  function showFeedback(message, color) {
+    let fb = document.getElementById('feedback');
+    fb.textContent = message;
+    fb.style.color = color;
+    let flashes = 0;
+    const flash = () => {
+      fb.style.visibility = (flashes % 2 === 0) ? "hidden" : "visible";
+      flashes++;
+      if (flashes < 6) setTimeout(flash, 100);
+      else fb.style.visibility = "visible";
+    };
+    flash();
+  }
 
-    function playSound(type) {
-      if (!document.getElementById('enableSound').checked) return;
-      const sound = document.getElementById(`sound-${type}`);
-      if (sound) sound.play();
-    }
+  function playSound(type) {
+    if (!document.getElementById('enableSound').checked) return;
+    const sound = document.getElementById(`sound-${type}`);
+    if (sound) sound.play();
+  }
 
-    function showScoreChart() {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'scoreChart';
-      canvas.width = 400;
-      canvas.height = 200;
-      document.getElementById('results').appendChild(canvas);
+  function showScoreChart() {
+    const canvas = document.createElement('canvas');
+    canvas.id = 'scoreChart';
+    canvas.width = 400;
+    canvas.height = 200;
+    document.getElementById('results').appendChild(canvas);
 
-      const ctx = canvas.getContext('2d');
-      const correctCount = results.filter(x => x).length;
-      const wrongCount = results.length - correctCount;
+    const ctx = canvas.getContext('2d');
+    const correctCount = results.filter(x => x).length;
+    const wrongCount = results.length - correctCount;
 
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Correct', 'Wrong'],
-          datasets: [{
-            label: 'Your Score',
-            data: [correctCount, wrongCount],
-            backgroundColor: ['#28a745', '#dc3545']
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true, precision: 0 }
-          }
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Correct', 'Wrong'],
+        datasets: [{
+          label: 'Your Score',
+          data: [correctCount, wrongCount],
+          backgroundColor: ['#28a745', '#dc3545']
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, precision: 0 }
         }
-      });
-    }
-  </script>
+      }
+    });
+  }
+</script>
 
 </body>
 </html>
